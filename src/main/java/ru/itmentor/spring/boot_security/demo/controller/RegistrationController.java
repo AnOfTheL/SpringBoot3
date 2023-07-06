@@ -1,7 +1,6 @@
 package ru.itmentor.spring.boot_security.demo.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import ru.itmentor.spring.boot_security.demo.model.Role;
@@ -10,7 +9,7 @@ import ru.itmentor.spring.boot_security.demo.service.UserService;
 
 import java.util.*;
 
-@Controller
+@RestController
 @RequestMapping("/registration")
 public class RegistrationController {
     @Autowired
