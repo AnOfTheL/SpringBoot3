@@ -17,7 +17,7 @@ import java.util.Arrays;
 @EnableWebSecurity
 //@EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
-    @Autowired
+    /*@Autowired
     private DataSource dataSource;
     private final SuccessUserHandler successUserHandler;
 
@@ -25,19 +25,28 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         this.successUserHandler = successUserHandler;
     }
 
-    /*@Override
+    @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
                 .authorizeRequests()
-                    .antMatchers("/", "/index", "/registration").permitAll()
+                    .antMatchers("/", "/registration").permitAll()
                     .anyRequest().authenticated()
                 .and()
-                    .formLogin().successHandler(successUserHandler)
-                    .loginPage("/login")
-                    .permitAll()
+                    .formLogin()
+                    .successHandler(successUserHandler)
+                .and()
+                    .httpBasic()
                 .and()
                     .logout()
-                    .permitAll();
+                    .logoutUrl("/logout")
+                    .clearAuthentication(true)
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID")
+                    .logoutSuccessUrl("/?logout")
+                    //   .logoutSuccessHandler(urlLogoutSuccessHandler) // перехватчик если нужен
+                    .permitAll()
+                .and()
+                    .csrf().disable();
     }
 
     @Override
@@ -53,7 +62,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception{
-        http.cors().and().csrf().disable();
+        http
+                    .cors()
+                .and()
+                    .csrf().disable();
     }
 
     @Bean

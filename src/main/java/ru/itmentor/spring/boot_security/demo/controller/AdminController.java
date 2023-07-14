@@ -7,11 +7,10 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.*;
 import ru.itmentor.spring.boot_security.demo.model.Role;
 import ru.itmentor.spring.boot_security.demo.model.User;
-import ru.itmentor.spring.boot_security.demo.service.UserService;
+import ru.itmentor.spring.boot_security.demo.service.implementation.RoleService;
+import ru.itmentor.spring.boot_security.demo.service.implementation.UserService;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 @Controller
 @RequestMapping("/admin")
@@ -19,23 +18,25 @@ import java.util.Set;
 public class AdminController {
     @Autowired
     private UserService userService;
+    @Autowired
+    private RoleService roleService;
 
     @GetMapping()
     public String selectAll(ModelMap model) {
-        model.addAttribute("users", userService.getAllUsers());
+        model.addAttribute("users", userService.getAll());
         return "show";
     }
 
     @GetMapping("/{id}")
     public String selectById(@PathVariable("id") long id, ModelMap model) {
-        model.addAttribute("user", userService.getUserById(id));
+        model.addAttribute("user", userService.getById(id).orElseThrow(() -> new RuntimeException("User not found")));
         return "userCrud";
     }
 
     @GetMapping("/new")
     public String newUser(ModelMap model) {
         model.addAttribute("user", new User());
-        model.addAttribute("roles", Role.values());
+        model.addAttribute("roles", roleService.getAll());
         return "new";
     }
 
@@ -48,29 +49,28 @@ public class AdminController {
                          @RequestParam("password") String password,
                          @RequestParam("roles") Role[] roles)
     {
-        User userFromDb = userService.getUserByUsername(username);
+        Optional<User> userFromDb = userService.getByParam(username);
 
-        if (userFromDb != null) {
+        if (userFromDb.isPresent()) {
             model.addAttribute("message", "User exists!");
             return newUser(model);
         }
 
-        User user = new User(name, lastname, age);
-        user.setUsername(username);
-        user.setPassword(password);
-        user.setActive(true);
+        User user = new User(name, lastname, age, username, password);
 
-        Set<Role> sRoles = new HashSet<>();
-        Collections.addAll(sRoles, roles);
-        user.setRoles(sRoles);
+        if (roles != null) {
+            Arrays.stream(roles).forEach(role->userService.addRoleByService(user, role));
+        }
 
-        userService.saveUser(user);
+        userService.save(user);
         return "redirect:/admin";
     }
 
     @GetMapping("/{id}/edit")
-    public String edit(ModelMap model, @PathVariable("id") long id) {
-        model.addAttribute("user", userService.getUserById(id));
+    public String edit(ModelMap model,
+                       @PathVariable("id") long id) {
+        model.addAttribute("user", userService.getById(id).orElseThrow(() -> new RuntimeException("User not found")));
+        model.addAttribute("roles", roleService.getAll());
         return "edit";
     }
 
@@ -78,14 +78,24 @@ public class AdminController {
     public String update(@RequestParam("name") String name,
                          @RequestParam("lastname") String lastname,
                          @RequestParam("age") byte age,
+                         @RequestParam(value ="roles", required = false) Role[] roles,
                          @PathVariable("id") long id) {
-        userService.updateUser(id, name, lastname, age);
+        User user = userService.getById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setName(name);
+        user.setLastname(lastname);
+        user.setAge(age);
+
+        if (roles != null) {
+            Arrays.stream(roles).forEach(role->userService.addRoleByService(user, role));
+        }
+
+        userService.update(id, user);
         return "redirect:/admin";
     }
 
     @PostMapping("/{id}/delete")
     public String delete(@PathVariable("id") int id) {
-        userService.deleteUserById(id);
+        userService.deleteById(id);
         return "redirect:/admin";
     }
 }
